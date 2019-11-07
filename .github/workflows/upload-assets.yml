@@ -1,0 +1,33 @@
+name: Create Release
+
+on: [release]
+    
+jobs:
+  build:
+    name: Build SU2
+    strategy:
+      fail-fast: false
+      matrix:
+        os_bin: [macos, linux]
+        include: 
+          - os_bin: macos
+            flags: '-Dwith-mpi=false --cross-file=/hostfile_darwin'
+          - os_bin: linux
+            flags: '-Dwith-mpi=false'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build
+      uses: docker://su2code/build-su2-darwin:latest
+      with:
+        args: -b ${{github.sha}} -f "${{matrix.flags}}"
+    - name: Create Archive
+      run: |
+        cd install
+        zip -r ${{matrix.os_bin}}.zip bin
+    - name: Upload to release
+      uses: JasonEtco/upload-to-release@master
+      with:
+       args: install/${{matrix.os_bin}}.zip application/zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.CREATE_RELEASE }}
